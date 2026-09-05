@@ -59,7 +59,7 @@ end
 function debug.pointerpressed(ctx, f, x, y)
     local id = ctx.widgets.hitTest(f.layout, x, y)
     if id == "language" then
-        ctx.router:push("language")
+        ctx.router:gotoScene("language")
     elseif id == "fullscreen" then
         ctx.toggleFullscreen()
     elseif id == "back" then

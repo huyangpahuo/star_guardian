@@ -46,13 +46,23 @@ function audio.init()
     audio.startMusic()
 end
 
--- Drop finished one-shot sources so the pool cannot grow without bound.
--- (LÖVE 11.5 removed Source:isStopped; "not isPlaying" is equivalent here
--- because one-shot sounds are never paused.)
+-- Drop finished one-shot sources (releasing their OpenAL handles right
+-- away instead of waiting for GC) and hard-cap concurrency so rapid fire
+-- can never accumulate unbounded audio resources.
+local MAX_CONCURRENT_SFX = 24
+
 function audio.update()
     for i = #audio.sources, 1, -1 do
         local src = audio.sources[i]
-        if not src:isPlaying() then table.remove(audio.sources, i) end
+        if not src:isPlaying() then
+            src:release()
+            table.remove(audio.sources, i)
+        end
+    end
+    while #audio.sources > MAX_CONCURRENT_SFX do
+        local src = table.remove(audio.sources, 1)
+        src:stop()
+        src:release()
     end
 end
 
@@ -88,7 +98,11 @@ function audio.generateMusic()
 end
 
 function audio.startMusic()
-    if audio.musicSource then audio.musicSource:stop() end
+    if audio.musicSource then
+        audio.musicSource:stop()
+        audio.musicSource:release()
+        audio.musicSource = nil
+    end
     if audio.sounds.music then
         audio.musicSource = love.audio.newSource(audio.sounds.music, "static")
         audio.musicSource:setLooping(true)

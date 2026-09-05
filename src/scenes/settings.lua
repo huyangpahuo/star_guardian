@@ -27,7 +27,7 @@ local function close(ctx, f)
         music = ctx.audio.musicVol,
     }
     ctx.save.write()
-    ctx.router:pop()
+    ctx.router:gotoScene("menu")
 end
 
 function settings.draw(ctx, f)

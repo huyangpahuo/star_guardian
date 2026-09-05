@@ -48,9 +48,19 @@ function world.applyShip(cfg, h)
 end
 
 function world.onResize(w, h)
+    local ow, oh = world.width, world.height
     world.width, world.height = w, h
     world.baseSize = math.min(w, h)
-    stars.init(world.starsList, w, h)
+    -- Keep the existing starfield and rescale it proportionally instead of
+    -- re-rolling: re-rolling on every resize event made the sky "jump"
+    -- during interactive window resizing.
+    if ow and oh and ow > 0 and oh > 0 then
+        local sx, sy = w / ow, h / oh
+        for _, s in ipairs(world.starsList) do
+            s.x = s.x * sx
+            s.y = s.y * sy
+        end
+    end
     local p = world.player
     if p then
         p.y = h - math.min(h * 0.12, 80)

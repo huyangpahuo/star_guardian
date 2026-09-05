@@ -35,7 +35,7 @@ function language.pointerpressed(ctx, f, x, y)
     if not id then return end
     ctx.audio.play("click")
     if id == "back" then
-        ctx.router:pop()
+        ctx.router:gotoScene("menu")
     elseif id:sub(1, 5) == "lang_" then
         ctx.setLanguage(id:sub(6))
     end
@@ -44,7 +44,7 @@ end
 function language.keypressed(ctx, f, key)
     if key == "escape" then
         ctx.audio.play("click")
-        ctx.router:pop()
+        ctx.router:gotoScene("menu")
     end
 end
 

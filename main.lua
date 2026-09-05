@@ -79,6 +79,8 @@ end
 
 function love.resize(w, h)
     app.resize(w, h)
+    -- repaint immediately so content scales live while dragging the edge
+    app.redrawNow()
 end
 
 function love.quit()

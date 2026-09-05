@@ -24,14 +24,11 @@ assets.langFontPaths = {
 
 function assets.setLanguage(lang) assets.lang = lang end
 
--- Preload common sizes for every language so menus don't hitch on first draw.
-function assets.init()
-    for _, size in ipairs({12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 48, 64}) do
-        assets.getFont(size, "en")
-        assets.getFont(size, "zh_CN")
-        assets.getFont(size, "ja")
-    end
-end
+-- Fonts load lazily on first use (see getFont). Preloading every size x
+-- language used to pin 300-400MB of CJK font data in RAM at boot, so
+-- initialization stays cheap now: a typical screen touches ~6 sizes in
+-- one language.
+function assets.init() end
 
 function assets.loadFont(size, lang)
     local paths = (lang and assets.langFontPaths[lang]) or assets.fontPaths

@@ -61,6 +61,11 @@ function app.init()
     ctx.time = 0
     app.ctx = ctx
 
+    -- The game never accepts typed text. Without this, CJK IMEs swallow
+    -- letter keys (a/d/p...) and hijack the arrow keys while composing;
+    -- the player then has to press Esc to cancel the composition.
+    pcall(function() love.keyboard.setTextInput(false) end)
+
     local w, h = love.graphics.getDimensions()
     ctx.w, ctx.h = w, h
 
@@ -87,16 +92,17 @@ function app.init()
         save.data.achievements = achievements.unlockedIds()
         save.write()
     end
+    -- Fullscreen must never switch inside the event handler: changing the
+    -- window mode while the engine is pumping events deadlocks the message
+    -- queue on Windows (system-wide freeze). Defer it to the next update.
     ctx.toggleFullscreen = function()
         if not desktop then return end
-        local fs = not love.window.getFullscreen()
-        love.window.setFullscreen(fs, "desktop")
-        save.data.fullscreen = fs
-        save.write()
+        app.pendingFullscreen = not love.window.getFullscreen()
     end
 
     -- post-processing shader over the whole frame
     ctx.canvas = love.graphics.newCanvas(w, h)
+    ctx.canvasW, ctx.canvasH = w, h
     if love.filesystem.getInfo("resources/shaders/post.glsl") then
         local ok, shader = pcall(love.graphics.newShader, love.filesystem.read("resources/shaders/post.glsl"))
         if ok then app.shader = shader end
@@ -122,6 +128,16 @@ function app.update(dt)
     local ctx = app.ctx
     ctx.time = ctx.time + dt
     ctx.w, ctx.h = love.graphics.getDimensions()
+
+    -- apply a deferred fullscreen switch outside of the event pump
+    if app.pendingFullscreen ~= nil then
+        local fs = app.pendingFullscreen
+        app.pendingFullscreen = nil
+        love.window.setFullscreen(fs, "desktop")
+        save.data.fullscreen = fs
+        save.write()
+    end
+
     input.update()
     ctx.router:update(dt)
     achievements.update(dt)
@@ -140,6 +156,16 @@ end
 
 function app.draw()
     local ctx = app.ctx
+
+    -- Rebuild the render canvas at most once per frame and release the old
+    -- one immediately: recreating on every resize event piled up canvases
+    -- in VRAM (tens of MB each) until the GPU driver stalled the system.
+    if ctx.canvasW ~= ctx.w or ctx.canvasH ~= ctx.h or not ctx.canvas then
+        if ctx.canvas then ctx.canvas:release() end
+        ctx.canvas = love.graphics.newCanvas(ctx.w, ctx.h)
+        ctx.canvasW, ctx.canvasH = ctx.w, ctx.h
+    end
+
     local target = ctx.canvas
     if target then
         love.graphics.setCanvas(target)
@@ -215,8 +241,8 @@ end
 
 function app.resize(w, h)
     local ctx = app.ctx
+    if w == ctx.w and h == ctx.h then return end
     ctx.w, ctx.h = w, h
-    ctx.canvas = love.graphics.newCanvas(w, h)
     input.resize(w, h)
     world.onResize(w, h)
 end
@@ -224,6 +250,22 @@ end
 function app.shutdown()
     save.write()
     mcp_bridge.shutdown()
+end
+
+-- Immediate, throttled repaint used by love.resize: while the user drags
+-- the window edge, LÖVE's normal frame loop does not refresh the window
+-- (the OS just stretches the last frame), so we redraw and present right
+-- inside the resize callback to make the layout scale live. Throttled to
+-- ~30 Hz and disabled during fullscreen transitions, where presenting can
+-- stall the display driver.
+function app.redrawNow()
+    if love.window.getFullscreen() then return end
+    local t = love.timer.getTime()
+    if t - (app.lastForcedRedraw or 0) < 1 / 30 then return end
+    app.lastForcedRedraw = t
+    local ok, err = xpcall(app.draw, debug.traceback)
+    if not ok then app.reportError(err) end
+    love.graphics.present()
 end
 
 return app

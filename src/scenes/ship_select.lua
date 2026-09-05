@@ -22,7 +22,7 @@ local function confirm(ctx, f)
     ctx.ships.select(id)
     ctx.save.set("ship", id)
     ctx.audio.play("click")
-    ctx.router:pop()
+    ctx.router:gotoScene("menu")
 end
 
 function ship_select.update(ctx, f, dt)
@@ -85,14 +85,14 @@ function ship_select.pointerpressed(ctx, f, x, y)
     if id == "left_arrow" then cycle(ctx, f, -1)
     elseif id == "right_arrow" then cycle(ctx, f, 1)
     elseif id == "select" then confirm(ctx, f)
-    elseif id == "back" then ctx.audio.play("click"); ctx.router:pop() end
+    elseif id == "back" then ctx.audio.play("click"); ctx.router:gotoScene("menu") end
 end
 
 function ship_select.keypressed(ctx, f, key)
     if key == "left" or key == "a" then cycle(ctx, f, -1)
     elseif key == "right" or key == "d" then cycle(ctx, f, 1)
     elseif key == "return" or key == "kpenter" then confirm(ctx, f)
-    elseif key == "escape" then ctx.audio.play("click"); ctx.router:pop() end
+    elseif key == "escape" then ctx.audio.play("click"); ctx.router:gotoScene("menu") end
 end
 
 return ship_select

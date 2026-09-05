@@ -1,6 +1,6 @@
 function love.conf(t)
     t.identity = "star_guardian"
-    t.version = "11.4"
+    t.version = "11.5"
     t.window.title = "Star Guardian"
     t.window.width = 900
     t.window.height = 650
@@ -16,9 +16,9 @@ function love.conf(t)
     t.modules.video = false
     t.modules.touch = true
 
-    -- Smoke tests (SG_SMOKE=1) run against a throwaway save directory and
-    -- open their window off-screen so they never disturb the desktop.
-    if os.getenv("SG_SMOKE") == "1" then
+    -- Smoke/diagnostic runs (SG_SMOKE set to any value) use a throwaway
+    -- save directory and open their window off-screen.
+    if os.getenv("SG_SMOKE") then
         t.identity = "star_guardian_smoke"
         t.window.x = 8000
         t.window.y = 8000
