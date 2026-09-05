@@ -1,0 +1,11 @@
+# LobeHub skill cache
+.agents/
+
+# Diagnostic leftovers
+smoke_out*.txt
+smoke_progress*.txt
+smoke_error*.txt
+goto_check.txt
+syntax_check.txt
+smoke_dir_listing.txt
+smoke_progress_check.txt
